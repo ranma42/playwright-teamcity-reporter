@@ -1,8 +1,9 @@
-import { TestCase } from "@playwright/test/reporter";
+import { TestCase, TestStep } from "@playwright/test/reporter";
 
 import { ActionType } from "./teamcity.model";
 
 export type TextParts = Record<string, string>;
+export type TestFlowKey = TestCase | TestStep;
 
 const replacer = () => {
   const seen = new WeakSet();
@@ -48,4 +49,4 @@ export const writeServiceMessage = (messageName: ActionType, parts: TextParts): 
 };
 
 // https://www.jetbrains.com/help/teamcity/2021.2/service-messages.html#Interpreting+Test+Names
-export const getTestName = (test: TestCase) => test.titlePath().filter(title => title).join(': ');
+export const getTestName = (test: TestFlowKey) => test.titlePath().filter(title => title).join(': ');

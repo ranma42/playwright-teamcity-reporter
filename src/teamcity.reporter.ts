@@ -1,19 +1,20 @@
 import {
   Reporter, FullConfig, TestCase,
-  TestError, TestResult, FullResult
+  TestError, TestResult, FullResult,
+  TestStep
 } from '@playwright/test/reporter';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 
 import { NotImplementedError } from './errors';
 import { ActionType, ITeamcityReporterConfiguration } from './teamcity.model';
-import { stringify, writeServiceMessage, getTestName, TextParts } from './utils';
+import { stringify, writeServiceMessage, getTestName, TestFlowKey, TextParts } from './utils';
 
 // https://www.jetbrains.com/help/teamcity/service-messages.html
 class TeamcityReporter implements Reporter {
   readonly #testMetadataArtifacts: string;
 
-  readonly #flowIds = new Map<TestCase, string>();
+  readonly #flowIds = new Map<TestFlowKey, string>();
 
   constructor(private configuration?: ITeamcityReporterConfiguration) {
     this.#testMetadataArtifacts = configuration?.testMetadataArtifacts
@@ -88,6 +89,21 @@ class TeamcityReporter implements Reporter {
     this.#writeTestFlow(`testFinished`, test, { duration: `${result.duration}` });
   }
 
+  onStepBegin(test: TestCase, result: TestResult, step: TestStep): void {
+    this.#writeTestFlow(`testStarted`, step);
+  }
+
+  onStepEnd(test: TestCase, result: TestResult, step: TestStep): void {
+    if (step.error) {
+      this.#writeTestFlow(`testFailed`, step, {
+        message: `${step.error.message ?? ''}`,
+        details: `${step.error.stack ?? ''}`,
+      });
+    }
+
+    this.#writeTestFlow(`testFinished`, step, { duration: `${step.duration}` });
+  }
+
   onError(error: TestError): void {
     console.error(error);
   }
@@ -130,7 +146,7 @@ class TeamcityReporter implements Reporter {
     });
   }
 
-  #writeTestFlow(messageName: ActionType, test: TestCase, parts: TextParts = {}): void {
+  #writeTestFlow(messageName: ActionType, test: TestFlowKey, parts: TextParts = {}): void {
     writeServiceMessage(messageName, {
       name: getTestName(test),
       ...parts,
@@ -138,7 +154,7 @@ class TeamcityReporter implements Reporter {
     });
   }
 
-  #getFlowId(test: TestCase): string {
+  #getFlowId(test: TestFlowKey): string {
     let flowId = this.#flowIds.get(test);
     if (flowId === undefined) {
       flowId = randomUUID();
