@@ -32,7 +32,7 @@
   "author": "artemr2009@gmail.com",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.17.1",
+    "@playwright/test": "^1.21.0",
     "@types/jest": "^27.0.3",
     "@types/node": "^14.0.0",
     "@typescript-eslint/eslint-plugin": "^5.5.0",
